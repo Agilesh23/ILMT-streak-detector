@@ -1,0 +1,19 @@
+candidate_id,frame_name,cutout_path,context_path,score,area,aspect_ratio,max_intensity,label,notes
+1175,20221026-0057.fits,outputs\labeling_batch_2\20221026-0057_cand_1175_cutout.png,outputs\labeling_batch_2\20221026-0057_cand_1175_context.png,99.32,6594,16.03,11401.87,1,part of a streak not a complete streak
+20,20221026-0057.fits,outputs\labeling_batch_2\20221026-0057_cand_20_cutout.png,outputs\labeling_batch_2\20221026-0057_cand_20_context.png,80.42,4008,6.84,286.14,0,
+11455,20221026-0057.fits,outputs\labeling_batch_2\20221026-0057_cand_11455_cutout.png,outputs\labeling_batch_2\20221026-0057_cand_11455_context.png,64.05,121,4.53,529.56,0,not sure what it is maybe noise
+9983,20221101-0030.fits,outputs\labeling_batch_2\20221101-0030_cand_9983_cutout.png,outputs\labeling_batch_2\20221101-0030_cand_9983_context.png,67.23,51,5.13,88.7,0,cropped star
+17722,20221101-0030.fits,outputs\labeling_batch_2\20221101-0030_cand_17722_cutout.png,outputs\labeling_batch_2\20221101-0030_cand_17722_context.png,57.62,55,3.88,845.7,0,noise
+7682,20221101-0030.fits,outputs\labeling_batch_2\20221101-0030_cand_7682_cutout.png,outputs\labeling_batch_2\20221101-0030_cand_7682_context.png,55.24,50,4.21,61.55,0,stars and noise
+19325,20230602-0022.fits,outputs\labeling_batch_2\20230602-0022_cand_19325_cutout.png,outputs\labeling_batch_2\20230602-0022_cand_19325_context.png,87.46,464,8.04,1423.93,0,not sure what it is maybe noise
+2715,20230602-0022.fits,outputs\labeling_batch_2\20230602-0022_cand_2715_cutout.png,outputs\labeling_batch_2\20230602-0022_cand_2715_context.png,54.54,97,3.62,379.84,0,star and noise
+17284,20230602-0022.fits,outputs\labeling_batch_2\20230602-0022_cand_17284_cutout.png,outputs\labeling_batch_2\20230602-0022_cand_17284_context.png,50.16,49,3.77,59.19,0,star
+15632,20231115-0003.fits,outputs\labeling_batch_2\20231115-0003_cand_15632_cutout.png,outputs\labeling_batch_2\20231115-0003_cand_15632_context.png,73.59,131,5.77,2725.86,0,not sure what it is maybe noise
+671,20231115-0003.fits,outputs\labeling_batch_2\20231115-0003_cand_671_cutout.png,outputs\labeling_batch_2\20231115-0003_cand_671_context.png,69.36,88,5.19,123.43,0,star
+12058,20231115-0003.fits,outputs\labeling_batch_2\20231115-0003_cand_12058_cutout.png,outputs\labeling_batch_2\20231115-0003_cand_12058_context.png,66.85,89,4.86,441.77,0,not sure what it is maybe noise
+4794,20240114-0028.fits,outputs\labeling_batch_2\20240114-0028_cand_4794_cutout.png,outputs\labeling_batch_2\20240114-0028_cand_4794_context.png,77.3,210,6.34,360.44,0,not sure what it is maybe noise
+20291,20240114-0028.fits,outputs\labeling_batch_2\20240114-0028_cand_20291_cutout.png,outputs\labeling_batch_2\20240114-0028_cand_20291_context.png,67.55,303,4.95,113.03,0,not sure a horizontal line across star isnt a streak 
+18665,20240114-0028.fits,outputs\labeling_batch_2\20240114-0028_cand_18665_cutout.png,outputs\labeling_batch_2\20240114-0028_cand_18665_context.png,59.08,14563,4.02,63881.25,0,star and its brightness
+14613,20240405-0004.fits,outputs\labeling_batch_2\20240405-0004_cand_14613_cutout.png,outputs\labeling_batch_2\20240405-0004_cand_14613_context.png,99.68,8380,23.54,466.06,1,part of a streak not a complete streak
+6509,20240405-0004.fits,outputs\labeling_batch_2\20240405-0004_cand_6509_cutout.png,outputs\labeling_batch_2\20240405-0004_cand_6509_context.png,72.42,198,5.61,937.41,0,
+9847,20240405-0004.fits,outputs\labeling_batch_2\20240405-0004_cand_9847_cutout.png,outputs\labeling_batch_2\20240405-0004_cand_9847_context.png,67.17,182,4.9,545.2,0,

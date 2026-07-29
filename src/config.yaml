@@ -1,0 +1,63 @@
+# ILMT Streak Detector v3 Configuration
+
+background:
+  # Empirically verified on real frame 20221025-0028.fits:
+  # Quadrant means vary (-4.51 to +0.54 ADU), max local gradient = 78.3 ADU.
+  # background2d handles spatial gradients across the frame.
+  default_method: "background2d"  # "sigma_clip" or "background2d"
+  sigma: 3.0
+  box_size: 64
+  filter_size: 3
+
+tiling:
+  tile_height: 1024
+  tile_overlap: 100  # placeholder pending real streak-length estimate from Phase 3/4
+
+detection:
+  n_sigma: 3.0
+  min_aspect_ratio: 3.0
+  min_eccentricity: 0.9
+  # Derived from expected ILMT streak dimensions (5-30px width x 50-600px length = ~250-1800px area)
+  # Empirically confirmed against CCD saturation-blooming outliers (36,619px to 231,157px) on 20221025-0028.fits & 20230602-0022.fits
+  max_area: 15000.0
+  dilation_radius: 2  # unsourced default placeholder structuring element size
+
+ranking:
+  # Soft cutoff candidate selection executed after shape filter, prior to Radon/characterization (Phases 5-6)
+  top_n: 3
+  score_margin: 0.15  # relative margin below Nth score (keeps scores >= 0.85 * Nth_score)
+
+calibration:
+  # Empirically derived via Phase 4 synthetic streak injection across [15, 30, 45, 60, 75, 120, 150] deg.
+  # Converting Radon projection peak theta via spatial_angle = (90 - theta) % 180 matches injected angle with 0.0000 deg mean offset.
+  # Note: 1-degree Radon theta grid resolution introduces a +/-0.5 deg discretization floor on non-integer angles.
+  radon_angle_offset_deg: 0.0
+
+characterization:
+  box_width: 100   # default from notebook extract_streak_patch
+  gain: 4.0        # default from notebook calculate_error (e-/ADU)
+  rdnoise: 6.0     # default from notebook calculate_error (e-)
+  psf_fwhm_px: 6.79
+
+classification:
+  n_estimators: 100
+  random_state: 42
+
+stitching:
+  # Seeded fragment stitching: merges collinear blob candidates that belong
+  # to the same physical streak but were split by faint-gap thresholding.
+  enabled: true
+  # OLD V2 PARAMETERS (for reference/comparison):
+  # angle_tolerance_deg: 15.0
+  # min_connected_pct: 85.0
+  # min_snr_floor: 20.0
+  # max_cov: 2.0
+  # max_pair_distance: 3500.0
+  #
+  # NEW V3 TUNED PARAMETERS (fixes long faint streak truncation gaps):
+  angle_tolerance_deg: 20.0    # relaxed to accommodate slight centroid jitter over long distance
+  min_connected_pct: 70.0      # relaxed to allow 30% gap/noise dip along connecting ray
+  min_snr_floor: 3.0          # aligned with detection threshold (3.0-sigma) instead of 20.0-sigma floor
+  max_cov: 4.0                 # relaxed CoV threshold for faint fluctuating gaps
+  max_pair_distance: 5500.0    # expanded to cover full frame diagonal (up to ~5793px)
+  snr_threshold: 3.0           # per-sample threshold for coverage counting
