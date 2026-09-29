@@ -10,15 +10,16 @@
 - [x] C7 Absolute selection floor (min_abs_score=47)
 
 ## NOW (data and labeling)
-- [x] C8 Confirm the known true streak in 20221025-0028 is still selected
+- [ ] C8 Candidate 18693 in 20221025-0028 is a galaxy (curved, bright core), not a streak. Label it fp with note "galaxy" once the label tool exists.
 - [x] C9 Regenerate labeling batches 1 and 2 into *_v2 folders (keep old ones)
 - [ ] C2 Label all cutouts as Streak / False Positive (include junk and bleed trails)
 
 ## FEATURES AND MODEL
-- [ ] D1 Feature extraction: length, SNR profile, linearity, flux ratio
+- [ ] D1 Feature extraction: length, SNR profile, linearity, flux ratio, straightness (line-fit residual), brightness profile along the length (uniform vs core-and-fade), and width vs local star FWHM, to reject galaxies
 - [ ] G3 Saturated-star features: distance to nearest saturated star, angle vs scan axis (to reject bleed trails)
 - [ ] G3b Streak width compared with local star width (real streaks match star FWHM)
 - [ ] G4 Injection-recovery: paste fake streaks (a star profile trailed along a line, SNR 3-100, varied length and angle) into real frames; measure how often we recover them at each brightness; add them as extra training positives
+- [ ] G7 Test light smoothing for detection only (features measured on unsmoothed image); keep only if recall at low SNR improves.
 - [ ] D2 Train Random Forest
 - [ ] D3 Validate on a held-out set: precision and recall, split by frame (not by candidate)
 
