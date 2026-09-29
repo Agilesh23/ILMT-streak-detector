@@ -17,6 +17,22 @@ import argparse
 from pathlib import Path
 import pandas as pd
 from PIL import Image
+import matplotlib.pyplot as plt
+
+# Clear default matplotlib keymaps that clash with our keys (s, f, u, n, q)
+plt.rcParams['keymap.save'] = []
+plt.rcParams['keymap.quit'] = []
+plt.rcParams['keymap.fullscreen'] = []
+plt.rcParams['keymap.yscale'] = []
+plt.rcParams['keymap.xscale'] = []
+
+_clash_keys = {'s', 'f', 'u', 'n', 'q'}
+for _k in list(plt.rcParams.keys()):
+    if _k.startswith('keymap.'):
+        plt.rcParams[_k] = [
+            v for v in plt.rcParams[_k]
+            if v.lower() not in _clash_keys and not any(v.lower() == f"ctrl+{c}" for c in _clash_keys)
+        ]
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -228,13 +244,31 @@ def run_test(csv_path: Path, n_candidates: int = 3):
         tool.update_view()
         print(f"Candidate {i + 1}/{n_test}: ID {row['candidate_id']} | Cutout & Context verified ok.")
 
-    # Test in-memory label transitions without saving
+    from matplotlib.backend_bases import KeyEvent, key_press_handler
+
+    # Verify clashing keymaps are empty
+    assert len(plt.rcParams["keymap.save"]) == 0, "keymap.save is not empty"
+    assert len(plt.rcParams["keymap.quit"]) == 0, "keymap.quit is not empty"
+    assert len(plt.rcParams["keymap.fullscreen"]) == 0, "keymap.fullscreen is not empty"
+    assert len(plt.rcParams["keymap.yscale"]) == 0, "keymap.yscale is not empty"
+    assert len(plt.rcParams["keymap.xscale"]) == 0, "keymap.xscale is not empty"
+
+    # Test keypress 's': default handler does nothing (no save dialog), on_key labels streak
     tool.current_idx = 0
-    tool.set_label_and_advance("streak")
-    assert tool.current_idx == 1, "Failed to advance on 'streak'"
-    tool.set_label_and_advance("fp")
-    assert tool.current_idx == 2, "Failed to advance on 'fp'"
-    tool.undo()
+    event_s = KeyEvent("key_press_event", tool.fig.canvas, "s")
+    key_press_handler(event_s, tool.fig.canvas)  # verify default handler is no-op
+    tool.on_key(event_s)  # tool keypress handler
+    assert tool.df.at[0, "label"] == "streak", "Failed to label 'streak' on 's' keypress"
+    assert tool.current_idx == 1, "Failed to advance on 's' keypress"
+
+    # Test 'f' and 'u' key events
+    event_f = KeyEvent("key_press_event", tool.fig.canvas, "f")
+    tool.on_key(event_f)
+    assert tool.df.at[1, "label"] == "fp", "Failed to label 'fp' on 'f' keypress"
+    assert tool.current_idx == 2, "Failed to advance on 'f' keypress"
+
+    event_u = KeyEvent("key_press_event", tool.fig.canvas, "u")
+    tool.on_key(event_u)
     assert tool.current_idx == 1, "Failed to undo back to candidate index 1"
 
     plt.close(tool.fig)
