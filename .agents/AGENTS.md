@@ -30,3 +30,11 @@ Whenever the user asks "where are we now", "where should we proceed", "status", 
 8. Ask for approval before starting. Do not start work on your own.
 
 Keep it structured and concise. Do not re-read files that are not needed for the report.
+
+## Background
+For project background and known false-positive sources, read docs/STATUS_PROTOCOL.md (Background section) before writing a status report.
+
+## Scope Rules
+- Do only the task requested. Do not start other TASKLIST.md items or create extra work on your own.
+- Never edit src/config.yaml, TASKLIST.md, or existing scripts unless the task requires it.
+- After finishing a task, update its checkbox in TASKLIST.md and commit with a clear message.
