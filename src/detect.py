@@ -21,10 +21,17 @@ def find_blob_candidates(
     min_eccentricity: float = 0.9,
     max_area: float = 15000.0,
     dilation_radius: int = 2,
-    y_offset: int = 0
+    y_offset: int = 0,
+    edge_mask_max_x: float | None = None
 ) -> tuple[list[dict], int, int]:
     """
     Detect candidate elongated blobs in background-subtracted image data.
+
+    Parameters
+    ----------
+    edge_mask_max_x : float or None
+        If set, candidates with centroid X >= this value are excluded
+        (masks vertical CCD boundary artifact).
     """
     sub = data - bg
     thresh_map = n_sigma * std
@@ -49,6 +56,10 @@ def find_blob_candidates(
         if aspect_ratio >= min_aspect_ratio and ecc >= min_eccentricity and prop.area <= max_area:
             cy_local, cx_local = prop.centroid
             min_row, min_col, max_row, max_col = prop.bbox
+
+            # CCD edge artifact mask
+            if edge_mask_max_x is not None and cx_local >= edge_mask_max_x:
+                continue
 
             candidates.append({
                 "label": prop.label,
