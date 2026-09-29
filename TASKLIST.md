@@ -12,7 +12,8 @@
 ## NOW (data and labeling)
 - [x] C8 Confirm known true streaks survived (evidence: cand 3673 in 20230519-0009, score 99.75, and the 16881+14253 fragment pair in 20221025-0028)
 - [x] C9 Regenerate labeling batches 1 and 2 into *_v2 folders (keep old ones)
-- [ ] C10 Investigate why collinear fragments 16881 and 14253 (dist ~990px, angles 21.8/31.0) were not stitched; propose a fix
+- [x] C10 Implement grow_streak() with corridor merge in src/detect.py (tested on 5 known streaks and 10 FPs)
+- [ ] C11 Merge fragment labels into whole-streak rows
 - [x] C2 Label all cutouts as Streak / False Positive (include junk and bleed trails) - 10 streak / 81 fp of 91 labeled across batches 1 & 2
 
 ## FEATURES AND MODEL

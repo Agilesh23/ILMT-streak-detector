@@ -385,3 +385,278 @@ def stitch_collinear_fragments(
         merged.append(merged_cand)
 
     return merged
+
+
+def grow_streak(
+    candidates: list[dict],
+    data: np.ndarray,
+    bg: float | np.ndarray,
+    std: float | np.ndarray,
+    step_px: float = 5.0,
+    half_width_px: float = 4.0,
+    min_snr: float = 1.5,
+    max_gap_px: float = 50.0,
+    edge_mask_max_x: float = 3950.0,
+    corridor_angle_tol_deg: float = 15.0,
+    corridor_max_offset_px: float = 25.0
+) -> list[dict]:
+    """
+    Task C10: Grow candidates along their fitted lines and perform corridor merging.
+
+    For each seed candidate:
+      - Fits a line and marches bidirectionally in step_px increments.
+      - At each step, evaluates median signal across streak width (ignoring star spikes).
+      - Halts when SNR stays below min_snr for > max_gap_px, or hits image boundaries.
+      - Halts at edge_mask_max_x and flags reaches_edge_strip = True.
+
+    Corridor merge:
+      - Merges collinear candidates lying within corridor_angle_tol_deg and corridor_max_offset_px.
+      - Records total_length, gap_length, gap_mean_snr, mean_full_snr, and reaches_edge_strip.
+    """
+    if not candidates:
+        return []
+
+    sub_sigma = (data - bg) / np.maximum(std, 1e-4)
+    h, w = data.shape
+    transverse_offsets = np.arange(-half_width_px, half_width_px + 1.0, 1.0)
+
+    # 1. Grow each candidate along its fitted line
+    grown_cands = []
+    for cand in candidates:
+        cy, cx = cand["centroid"]
+        min_r, min_c, max_r, max_c = cand.get("bbox_full", cand.get("bbox_local"))
+        dy, dx = max_r - min_r, max_c - min_c
+
+        orientation = cand.get("orientation", None)
+        if orientation is not None:
+            angle_rad = orientation
+        else:
+            angle_rad = np.arctan2(dy, dx)
+
+        ux = np.cos(angle_rad)
+        uy = np.sin(angle_rad)
+        perp_ux, perp_uy = -uy, ux
+
+        p_pts = np.array([[min_c, min_r], [max_c, min_r], [min_c, max_r], [max_c, max_r]])
+        t_projs = [(p[0] - cx) * ux + (p[1] - cy) * uy for p in p_pts]
+        seed_t_min, seed_t_max = min(t_projs), max(t_projs)
+
+        reaches_edge_strip = False
+
+        def march(t_start: float, direction: float) -> float:
+            nonlocal reaches_edge_strip
+            curr_t = t_start
+            consec_low = 0.0
+            best_t = curr_t
+
+            while True:
+                curr_t += direction * step_px
+                xc = cx + curr_t * ux
+                yc = cy + curr_t * uy
+
+                if xc < 0 or xc >= w or yc < 0 or yc >= h:
+                    break
+                if xc >= edge_mask_max_x:
+                    reaches_edge_strip = True
+                    t_cap = (edge_mask_max_x - cx) / ux if abs(ux) > 1e-6 else curr_t
+                    best_t = t_cap
+                    break
+
+                xs = xc + transverse_offsets * perp_ux
+                ys = yc + transverse_offsets * perp_uy
+                vals = map_coordinates(sub_sigma, np.vstack([ys, xs]), order=1, mode='constant', cval=0.0)
+                step_med = float(np.median(vals))
+
+                if step_med >= min_snr:
+                    consec_low = 0.0
+                    best_t = curr_t
+                else:
+                    consec_low += step_px
+                    if consec_low > max_gap_px:
+                        break
+            return best_t
+
+        final_t_max = march(seed_t_max, +1.0)
+        final_t_min = march(seed_t_min, -1.0)
+
+        p0 = (cx + final_t_min * ux, cy + final_t_min * uy)
+        p1 = (cx + final_t_max * ux, cy + final_t_max * uy)
+        g_len = float(np.hypot(p1[0] - p0[0], p1[1] - p0[1]))
+
+        grown_cands.append({
+            "cand_id": cand["label"],
+            "seed_cand": cand,
+            "cx": cx,
+            "cy": cy,
+            "ux": ux,
+            "uy": uy,
+            "angle_rad": angle_rad,
+            "t_min": final_t_min,
+            "t_max": final_t_max,
+            "p0": p0,
+            "p1": p1,
+            "grown_length": g_len,
+            "reaches_edge_strip": reaches_edge_strip
+        })
+
+    # 2. Corridor merge among candidates
+    n = len(grown_cands)
+    parent = list(range(n))
+
+    def find(i: int) -> int:
+        if parent[i] == i:
+            return i
+        parent[i] = find(parent[i])
+        return parent[i]
+
+    def union(i: int, j: int) -> None:
+        root_i, root_j = find(i), find(j)
+        if root_i != root_j:
+            parent[root_i] = root_j
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            c1, c2 = grown_cands[i], grown_cands[j]
+            diff = abs(c1["angle_rad"] - c2["angle_rad"]) % np.pi
+            diff_deg = min(diff, np.pi - diff) * 180.0 / np.pi
+            if diff_deg > corridor_angle_tol_deg:
+                continue
+
+            dx = c2["cx"] - c1["cx"]
+            dy = c2["cy"] - c1["cy"]
+            dist_pair = np.hypot(dx, dy)
+
+            p_ang = np.arctan2(dy, dx)
+            p_diff1 = min(abs(c1["angle_rad"] - p_ang) % np.pi, np.pi - (abs(c1["angle_rad"] - p_ang) % np.pi)) * 180.0 / np.pi
+            p_diff2 = min(abs(c2["angle_rad"] - p_ang) % np.pi, np.pi - (abs(c2["angle_rad"] - p_ang) % np.pi)) * 180.0 / np.pi
+
+            perp_dist = abs(dx * (-c1["uy"]) + dy * c1["ux"])
+
+            is_collinear = (p_diff1 <= corridor_angle_tol_deg and p_diff2 <= corridor_angle_tol_deg) or (perp_dist <= corridor_max_offset_px and dist_pair < 300.0)
+            if is_collinear:
+                union(i, j)
+
+    from collections import defaultdict
+    clusters: dict[int, list[dict]] = defaultdict(list)
+    for i in range(n):
+        clusters[find(i)].append(grown_cands[i])
+
+    merged_streaks = []
+    for r, group in clusters.items():
+        if len(group) == 1:
+            g = group[0]
+            cx, cy = g["cx"], g["cy"]
+            ux, uy = g["ux"], g["uy"]
+            perp_ux, perp_uy = -uy, ux
+            steps = np.arange(g["t_min"], g["t_max"], step_px)
+            snrs = []
+            for t in steps:
+                xc = cx + t * ux
+                yc = cy + t * uy
+                vals = map_coordinates(sub_sigma, np.vstack([yc + transverse_offsets * perp_uy, xc + transverse_offsets * perp_ux]), order=1, mode='constant', cval=0.0)
+                snrs.append(float(np.median(vals)))
+            mean_snr = float(np.mean(snrs)) if snrs else 0.0
+
+            merged_cand = dict(g["seed_cand"])
+            merged_cand["total_length"] = round(g["grown_length"], 1)
+            merged_cand["gap_length"] = 0.0
+            merged_cand["gap_mean_snr"] = 0.0
+            merged_cand["mean_full_snr"] = round(mean_snr, 2)
+            merged_cand["reaches_edge_strip"] = g["reaches_edge_strip"]
+            merged_cand["p_start"] = g["p0"]
+            merged_cand["p_end"] = g["p1"]
+            merged_cand["stitched_from"] = [g["cand_id"]]
+            merged_streaks.append(merged_cand)
+            continue
+
+        rep = max(group, key=lambda c: c["grown_length"])
+        cx_rep, cy_rep = rep["cx"], rep["cy"]
+
+        group_centers = np.array([[g["cx"], g["cy"]] for g in group])
+        if len(group_centers) >= 2:
+            c_mean = np.mean(group_centers, axis=0)
+            _, _, vh = np.linalg.svd(group_centers - c_mean)
+            ux_rep, uy_rep = vh[0]
+            if ux_rep < 0:
+                ux_rep, uy_rep = -ux_rep, -uy_rep
+        else:
+            ux_rep, uy_rep = rep["ux"], rep["uy"]
+
+        perp_ux, perp_uy = -uy_rep, ux_rep
+
+        all_t_starts = []
+        all_t_ends = []
+        seg_intervals = []
+        for g in group:
+            p0 = g["p0"]
+            p1 = g["p1"]
+            t0 = (p0[0] - cx_rep) * ux_rep + (p0[1] - cy_rep) * uy_rep
+            t1 = (p1[0] - cx_rep) * ux_rep + (p1[1] - cy_rep) * uy_rep
+            s_min, s_max = min(t0, t1), max(t0, t1)
+            all_t_starts.append(s_min)
+            all_t_ends.append(s_max)
+            seg_intervals.append((s_min, s_max))
+
+        merged_t_min = min(all_t_starts)
+        merged_t_max = max(all_t_ends)
+
+        p_start = (cx_rep + merged_t_min * ux_rep, cy_rep + merged_t_min * uy_rep)
+        p_end = (cx_rep + merged_t_max * ux_rep, cy_rep + merged_t_max * uy_rep)
+
+        reaches_strip = any(g["reaches_edge_strip"] for g in group)
+        if p_end[0] >= edge_mask_max_x:
+            reaches_strip = True
+            t_cap = (edge_mask_max_x - cx_rep) / ux_rep if abs(ux_rep) > 1e-6 else merged_t_max
+            p_end = (edge_mask_max_x, cy_rep + t_cap * uy_rep)
+
+        total_len = float(np.hypot(p_end[0] - p_start[0], p_end[1] - p_start[1]))
+
+        seg_intervals = sorted(seg_intervals, key=lambda x: x[0])
+        merged_intervals: list[list[float]] = []
+        for s0, s1 in seg_intervals:
+            if not merged_intervals:
+                merged_intervals.append([s0, s1])
+            else:
+                if s0 <= merged_intervals[-1][1]:
+                    merged_intervals[-1][1] = max(merged_intervals[-1][1], s1)
+                else:
+                    merged_intervals.append([s0, s1])
+
+        gap_intervals = []
+        for k in range(len(merged_intervals) - 1):
+            gap_intervals.append((merged_intervals[k][1], merged_intervals[k+1][0]))
+
+        gap_len = sum(ge - gs for gs, ge in gap_intervals)
+
+        gap_snrs = []
+        for gs, ge in gap_intervals:
+            gap_steps = np.arange(gs, ge, step_px)
+            for gt in gap_steps:
+                g_xc = cx_rep + gt * ux_rep
+                g_yc = cy_rep + gt * uy_rep
+                vals = map_coordinates(sub_sigma, np.vstack([g_yc + transverse_offsets * perp_uy, g_xc + transverse_offsets * perp_ux]), order=1, mode='constant', cval=0.0)
+                gap_snrs.append(float(np.median(vals)))
+        mean_gap_snr = float(np.mean(gap_snrs)) if gap_snrs else 0.0
+
+        full_steps = np.arange(merged_t_min, merged_t_max, step_px)
+        full_snrs = []
+        for ft in full_steps:
+            f_xc = cx_rep + ft * ux_rep
+            f_yc = cy_rep + ft * uy_rep
+            vals = map_coordinates(sub_sigma, np.vstack([f_yc + transverse_offsets * perp_uy, f_xc + transverse_offsets * perp_ux]), order=1, mode='constant', cval=0.0)
+            full_snrs.append(float(np.median(vals)))
+        mean_full_snr = float(np.mean(full_snrs)) if full_snrs else 0.0
+
+        merged_cand = dict(rep["seed_cand"])
+        merged_cand["total_length"] = round(total_len, 1)
+        merged_cand["gap_length"] = round(gap_len, 1)
+        merged_cand["gap_mean_snr"] = round(mean_gap_snr, 2)
+        merged_cand["mean_full_snr"] = round(mean_full_snr, 2)
+        merged_cand["reaches_edge_strip"] = reaches_strip
+        merged_cand["p_start"] = p_start
+        merged_cand["p_end"] = p_end
+        merged_cand["stitched_from"] = [g["cand_id"] for g in group]
+        merged_streaks.append(merged_cand)
+
+    return merged_streaks
+

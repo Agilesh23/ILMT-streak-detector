@@ -59,3 +59,14 @@ stitching:
   min_snr_floor: 20.0
   max_cov: 2.0
   max_pair_distance: 3500.0
+
+growing:
+  # Task C10: grow candidates along fitted line and corridor merge (off by default)
+  enabled: false
+  step_px: 5.0
+  half_width_px: 4.0
+  min_snr: 1.5
+  max_gap_px: 50.0
+  corridor_angle_tol_deg: 15.0
+  corridor_max_offset_px: 25.0
+
