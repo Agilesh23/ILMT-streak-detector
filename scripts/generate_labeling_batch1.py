@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 import numpy as np
 import pandas as pd
+import yaml
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -18,6 +19,12 @@ from io_utils import load_fits
 from background import estimate_background
 from detect import find_blob_candidates, stitch_collinear_fragments, rank_and_select_candidates
 from characterize import extract_streak_patch
+
+# Load config
+with open(src_dir / "config.yaml", "r") as f:
+    cfg = yaml.safe_load(f)
+
+edge_mask_max_x = cfg.get("detection", {}).get("edge_mask_max_x", None)
 
 output_dir = base_dir / "outputs" / "labeling_batch_1"
 output_dir.mkdir(parents=True, exist_ok=True)
@@ -50,7 +57,8 @@ for frame_path_str in frames:
         n_sigma=3.0,
         min_aspect_ratio=3.0,
         min_eccentricity=0.9,
-        max_area=15000.0
+        max_area=15000.0,
+        edge_mask_max_x=edge_mask_max_x
     )
     stitched = stitch_collinear_fragments(candidates, data, bg, std)
     selected, cutoff_score = rank_and_select_candidates(stitched, top_n=3)

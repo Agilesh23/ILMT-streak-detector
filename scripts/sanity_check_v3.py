@@ -1,11 +1,18 @@
 import sys
 from pathlib import Path
+import yaml
 
 sys.path.insert(0, "src")
 
 from io_utils import load_fits
 from background import estimate_background
 from detect import find_blob_candidates, stitch_collinear_fragments, rank_and_select_candidates
+
+# Load config
+with open("src/config.yaml", "r") as f:
+    cfg = yaml.safe_load(f)
+
+edge_mask_max_x = cfg.get("detection", {}).get("edge_mask_max_x", None)
 
 frames = [
     r"C:\Users\agile\Downloads\Project\ILMT_Contest_Materials\test_files\20221025-0028.fits",
@@ -25,8 +32,10 @@ for path in frames:
         n_sigma=3.0,
         min_aspect_ratio=3.0,
         min_eccentricity=0.9,
-        max_area=15000.0
+        max_area=15000.0,
+        edge_mask_max_x=edge_mask_max_x
     )
     stitched = stitch_collinear_fragments(candidates, data, bg, std)
     selected, cutoff = rank_and_select_candidates(stitched)
     print(f"{fname:<20} | {count_shape:<12} | {len(stitched):<10} | {len(selected):<15}")
+
