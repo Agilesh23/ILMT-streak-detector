@@ -65,7 +65,7 @@ for frame_path_str in frames:
         border_max_length_px=border_max_length_px
     )
     stitched = stitch_collinear_fragments(candidates, data, bg, std)
-    selected, cutoff_score = rank_and_select_candidates(stitched, top_n=3)
+    selected, cutoff_score = rank_and_select_candidates(stitched)
     
     # Take top 3 per frame
     top3 = selected[:3]

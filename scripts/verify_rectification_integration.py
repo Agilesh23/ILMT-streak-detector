@@ -66,7 +66,7 @@ def main():
     unstitched_lookup = {c["label"]: c for c in unstitched_candidates}
 
     stitched_candidates = stitch_collinear_fragments(unstitched_candidates, data, bg, std)
-    selected_candidates, cutoff_score = rank_and_select_candidates(stitched_candidates, top_n=top_n)
+    selected_candidates, cutoff_score = rank_and_select_candidates(stitched_candidates)
 
     # Target long stitched candidate 3673
     target_cand = None

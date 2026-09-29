@@ -30,9 +30,9 @@ detection:
   border_max_length_px: 100.0
 
 ranking:
-  # Soft cutoff candidate selection executed after shape filter, prior to Radon/characterization (Phases 5-6)
-  top_n: 3
-  score_margin: 0.15  # relative margin below Nth score (keeps scores >= 0.85 * Nth_score)
+  # Absolute floor candidate selection executed after shape filter, prior to Radon/characterization (Phases 5-6)
+  # min_abs_score derived from minimum composite score (47.69) among original pre-mask selections across 3 test frames.
+  min_abs_score: 47.0
 
 calibration:
   # Empirically derived via Phase 4 synthetic streak injection across [15, 30, 45, 60, 75, 120, 150] deg.

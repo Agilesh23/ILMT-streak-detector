@@ -119,11 +119,11 @@ def compute_composite_score(cand: dict) -> float:
 
 def rank_and_select_candidates(
     candidates: list[dict],
-    top_n: int = 3,
-    score_margin: float = 0.15
+    min_abs_score: float = 47.0
 ) -> tuple[list[dict], float]:
     """
-    Rank blob candidates using a pre-Radon shape/intensity composite score and apply a soft cutoff.
+    Rank blob candidates using a pre-Radon composite shape/intensity score
+    and select those meeting an absolute score floor.
     """
     if not candidates:
         return [], 0.0
@@ -133,14 +133,8 @@ def rank_and_select_candidates(
 
     sorted_candidates = sorted(candidates, key=lambda c: c["composite_score"], reverse=True)
 
-    if len(sorted_candidates) <= top_n:
-        return sorted_candidates, 0.0
-
-    nth_score = sorted_candidates[top_n - 1]["composite_score"]
-    cutoff_score = float(nth_score * (1.0 - score_margin))
-
-    selected = [c for c in sorted_candidates if c["composite_score"] >= cutoff_score]
-    return selected, cutoff_score
+    selected = [c for c in sorted_candidates if c["composite_score"] >= min_abs_score]
+    return selected, min_abs_score
 
 
 def radon_features(cutout: np.ndarray, angle_offset_deg: float = 0.0) -> dict:
