@@ -10,8 +10,8 @@
 - [x] C7 Absolute selection floor (min_abs_score=47)
 
 ## NOW (data and labeling)
-- [ ] C8 Confirm the known true streak in 20221025-0028 is still selected
-- [ ] C9 Regenerate labeling batches 1 and 2 into *_v2 folders (keep old ones)
+- [x] C8 Confirm the known true streak in 20221025-0028 is still selected
+- [x] C9 Regenerate labeling batches 1 and 2 into *_v2 folders (keep old ones)
 - [ ] C2 Label all cutouts as Streak / False Positive (include junk and bleed trails)
 
 ## FEATURES AND MODEL
