@@ -24,6 +24,10 @@ detection:
   # CCD edge artifact mask: candidates with centroid X >= this value are excluded.
   # Vertical boundary artifact at X~3950-4096 produces high-SNR false positives.
   edge_mask_max_x: 3950.0
+  # Short-blob border mask: drop blobs whose bbox is within border_margin_px
+  # of any frame edge AND whose major axis length < border_max_length_px.
+  border_margin_px: 15
+  border_max_length_px: 100.0
 
 ranking:
   # Soft cutoff candidate selection executed after shape filter, prior to Radon/characterization (Phases 5-6)

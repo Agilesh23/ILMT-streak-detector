@@ -25,6 +25,8 @@ with open(src_dir / "config.yaml", "r") as f:
     cfg = yaml.safe_load(f)
 
 edge_mask_max_x = cfg.get("detection", {}).get("edge_mask_max_x", None)
+border_margin_px = cfg.get("detection", {}).get("border_margin_px", None)
+border_max_length_px = cfg.get("detection", {}).get("border_max_length_px", None)
 
 output_dir = base_dir / "outputs" / "labeling_batch_1"
 output_dir.mkdir(parents=True, exist_ok=True)
@@ -58,7 +60,9 @@ for frame_path_str in frames:
         min_aspect_ratio=3.0,
         min_eccentricity=0.9,
         max_area=15000.0,
-        edge_mask_max_x=edge_mask_max_x
+        edge_mask_max_x=edge_mask_max_x,
+        border_margin_px=border_margin_px,
+        border_max_length_px=border_max_length_px
     )
     stitched = stitch_collinear_fragments(candidates, data, bg, std)
     selected, cutoff_score = rank_and_select_candidates(stitched, top_n=3)

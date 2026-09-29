@@ -22,7 +22,9 @@ def find_blob_candidates(
     max_area: float = 15000.0,
     dilation_radius: int = 2,
     y_offset: int = 0,
-    edge_mask_max_x: float | None = None
+    edge_mask_max_x: float | None = None,
+    border_margin_px: int | None = None,
+    border_max_length_px: float | None = None
 ) -> tuple[list[dict], int, int]:
     """
     Detect candidate elongated blobs in background-subtracted image data.
@@ -32,7 +34,14 @@ def find_blob_candidates(
     edge_mask_max_x : float or None
         If set, candidates with centroid X >= this value are excluded
         (masks vertical CCD boundary artifact).
+    border_margin_px : int or None
+        If set (along with border_max_length_px), blobs whose bbox falls
+        within this many pixels of any frame edge AND whose major axis
+        length < border_max_length_px are dropped.
+    border_max_length_px : float or None
+        Length threshold for border mask (see border_margin_px).
     """
+    h_img, w_img = data.shape
     sub = data - bg
     thresh_map = n_sigma * std
     binary = sub > thresh_map
@@ -60,6 +69,18 @@ def find_blob_candidates(
             # CCD edge artifact mask
             if edge_mask_max_x is not None and cx_local >= edge_mask_max_x:
                 continue
+
+            # Short-blob border mask: drop if bbox touches any frame edge
+            # AND the blob is shorter than the length threshold.
+            if border_margin_px is not None and border_max_length_px is not None:
+                near_edge = (
+                    min_row < border_margin_px or
+                    min_col < border_margin_px or
+                    max_row > h_img - border_margin_px or
+                    max_col > w_img - border_margin_px
+                )
+                if near_edge and major < border_max_length_px:
+                    continue
 
             candidates.append({
                 "label": prop.label,
