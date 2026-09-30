@@ -20,6 +20,10 @@ detection:
   # Derived from expected ILMT streak dimensions (5-30px width x 50-600px length = ~250-1800px area)
   # Empirically confirmed against CCD saturation-blooming outliers (36,619px to 231,157px) on 20221025-0028.fits & 20230602-0022.fits
   max_area: 15000.0
+  long_thin_bypass:
+    enabled: true
+    min_major_px: 1000.0
+    min_aspect: 30.0
   dilation_radius: 2  # unsourced default placeholder structuring element size
   # CCD edge artifact mask: candidates with centroid X >= this value are excluded.
   # Vertical boundary artifact at X~3950-4096 produces high-SNR false positives.

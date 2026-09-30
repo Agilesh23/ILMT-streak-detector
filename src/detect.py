@@ -26,7 +26,11 @@ def find_blob_candidates(
     border_margin_px: int | None = None,
     border_max_length_px: float | None = None,
     left_edge_max_col: float | None = None,
-    left_edge_max_angle_from_vertical_deg: float | None = None
+    left_edge_max_angle_from_vertical_deg: float | None = None,
+    long_thin_bypass: dict | None = None,
+    long_thin_bypass_enabled: bool = True,
+    long_thin_bypass_min_major_px: float = 1000.0,
+    long_thin_bypass_min_aspect: float = 30.0
 ) -> tuple[list[dict], int, int]:
     """
     Detect candidate elongated blobs in background-subtracted image data.
@@ -64,13 +68,28 @@ def find_blob_candidates(
     count_before = len(props)
     candidates = []
 
+    if long_thin_bypass is not None:
+        bypass_enabled = long_thin_bypass.get("enabled", True)
+        bypass_min_major_px = long_thin_bypass.get("min_major_px", 1000.0)
+        bypass_min_aspect = long_thin_bypass.get("min_aspect", 30.0)
+    else:
+        bypass_enabled = long_thin_bypass_enabled
+        bypass_min_major_px = long_thin_bypass_min_major_px
+        bypass_min_aspect = long_thin_bypass_min_aspect
+
     for prop in props:
         major = prop.axis_major_length
         minor = prop.axis_minor_length
         ecc = prop.eccentricity
         aspect_ratio = major / minor if minor > 0 else 999.0
 
-        if aspect_ratio >= min_aspect_ratio and ecc >= min_eccentricity and prop.area <= max_area:
+        area_ok = prop.area <= max_area or (
+            bypass_enabled
+            and major >= bypass_min_major_px
+            and aspect_ratio >= bypass_min_aspect
+        )
+
+        if aspect_ratio >= min_aspect_ratio and ecc >= min_eccentricity and area_ok:
             cy_local, cx_local = prop.centroid
             min_row, min_col, max_row, max_col = prop.bbox
 
