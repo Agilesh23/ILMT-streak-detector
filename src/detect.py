@@ -24,7 +24,9 @@ def find_blob_candidates(
     y_offset: int = 0,
     edge_mask_max_x: float | None = None,
     border_margin_px: int | None = None,
-    border_max_length_px: float | None = None
+    border_max_length_px: float | None = None,
+    left_edge_max_col: float | None = None,
+    left_edge_max_angle_from_vertical_deg: float | None = None
 ) -> tuple[list[dict], int, int]:
     """
     Detect candidate elongated blobs in background-subtracted image data.
@@ -40,6 +42,12 @@ def find_blob_candidates(
         length < border_max_length_px are dropped.
     border_max_length_px : float or None
         Length threshold for border mask (see border_margin_px).
+    left_edge_max_col : float or None
+        If set, candidates whose bbox lies entirely within columns 0..left_edge_max_col
+        AND whose orientation angle is within left_edge_max_angle_from_vertical_deg
+        of vertical are dropped.
+    left_edge_max_angle_from_vertical_deg : float or None
+        Angular tolerance from vertical (90 deg) for left-edge glow filter.
     """
     h_img, w_img = data.shape
     sub = data - bg
@@ -81,6 +89,18 @@ def find_blob_candidates(
                 )
                 if near_edge and major < border_max_length_px:
                     continue
+
+            # Left-edge glow artifact mask: drop candidate whose bbox lies entirely
+            # within columns 0-left_edge_max_col and whose angle is within
+            # left_edge_max_angle_from_vertical_deg of vertical.
+            if left_edge_max_col is not None and left_edge_max_angle_from_vertical_deg is not None:
+                if max_col <= left_edge_max_col:
+                    dy = max_row - min_row
+                    dx = max_col - min_col
+                    ang = float(np.degrees(np.arctan2(dy, dx)) % 180.0)
+                    dev_from_vert = min(abs(ang - 90.0), 180.0 - abs(ang - 90.0))
+                    if dev_from_vert <= left_edge_max_angle_from_vertical_deg:
+                        continue
 
             candidates.append({
                 "label": prop.label,

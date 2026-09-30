@@ -28,6 +28,8 @@ detection:
   # of any frame edge AND whose major axis length < border_max_length_px.
   border_margin_px: 15
   border_max_length_px: 100.0
+  left_edge_max_col: 60.0
+  left_edge_max_angle_from_vertical_deg: 20.0
 
 ranking:
   # Absolute floor candidate selection executed after shape filter, prior to Radon/characterization (Phases 5-6)
