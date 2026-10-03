@@ -34,6 +34,11 @@ detection:
   border_max_length_px: 100.0
   left_edge_max_col: 60.0
   left_edge_max_angle_from_vertical_deg: 20.0
+  bleed_veto:
+    enabled: true
+    max_angle_from_vertical_deg: 10
+    sat_fraction: 0.9
+
 
 ranking:
   # Absolute floor candidate selection executed after shape filter, prior to Radon/characterization (Phases 5-6)

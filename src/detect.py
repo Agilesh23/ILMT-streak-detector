@@ -30,7 +30,8 @@ def find_blob_candidates(
     long_thin_bypass: dict | None = None,
     long_thin_bypass_enabled: bool = True,
     long_thin_bypass_min_major_px: float = 1000.0,
-    long_thin_bypass_min_aspect: float = 30.0
+    long_thin_bypass_min_aspect: float = 30.0,
+    bleed_veto: dict | None = None
 ) -> tuple[list[dict], int, int]:
     """
     Detect candidate elongated blobs in background-subtracted image data.
@@ -54,6 +55,7 @@ def find_blob_candidates(
         Angular tolerance from vertical (90 deg) for left-edge glow filter.
     """
     h_img, w_img = data.shape
+    frame_max = float(np.max(data))
     sub = data - bg
     thresh_map = n_sigma * std
     binary = sub > thresh_map
@@ -76,6 +78,15 @@ def find_blob_candidates(
         bypass_enabled = long_thin_bypass_enabled
         bypass_min_major_px = long_thin_bypass_min_major_px
         bypass_min_aspect = long_thin_bypass_min_aspect
+
+    if bleed_veto is not None:
+        bv_enabled = bleed_veto.get("enabled", True)
+        bv_max_angle = float(bleed_veto.get("max_angle_from_vertical_deg", 10.0))
+        bv_sat_fraction = float(bleed_veto.get("sat_fraction", 0.9))
+    else:
+        bv_enabled = True
+        bv_max_angle = 10.0
+        bv_sat_fraction = 0.9
 
     for prop in props:
         major = prop.axis_major_length
@@ -121,6 +132,33 @@ def find_blob_candidates(
                     if dev_from_vert <= left_edge_max_angle_from_vertical_deg:
                         continue
 
+            # Bleed-trail identification via PCA angle and saturation fraction
+            coords = prop.coords
+            if len(coords) >= 2:
+                pts_x = coords[:, 1].astype(np.float64)
+                pts_y = coords[:, 0].astype(np.float64)
+                dx = pts_x - np.mean(pts_x)
+                dy = pts_y - np.mean(pts_y)
+                cov = np.cov(np.vstack([dx, dy]))
+                eigvals, eigvecs = np.linalg.eigh(cov)
+                idx_sort = np.argsort(eigvals)[::-1]
+                vec = eigvecs[:, idx_sort[0]]
+                if vec[0] < 0:
+                    vec = -vec
+                ang_h = float(np.degrees(np.arctan2(vec[1], vec[0])))
+                if ang_h > 90.0:
+                    ang_h -= 180.0
+                elif ang_h < -90.0:
+                    ang_h += 180.0
+                pca_ang_v = float(abs(90.0 - abs(ang_h)))
+            else:
+                pca_ang_v = 0.0
+
+            blob_pixels = data[coords[:, 0], coords[:, 1]]
+            max_blob_val = float(np.max(blob_pixels))
+            has_sat_pixel = (max_blob_val >= bv_sat_fraction * frame_max)
+            is_bleed = bv_enabled and (pca_ang_v <= bv_max_angle) and has_sat_pixel
+
             candidates.append({
                 "label": prop.label,
                 "centroid": (float(cy_local + y_offset), float(cx_local)),
@@ -134,6 +172,8 @@ def find_blob_candidates(
                 "aspect_ratio": float(aspect_ratio),
                 "mean_intensity": float(prop.intensity_mean),
                 "max_intensity": float(prop.intensity_max),
+                "is_bleed_trail": bool(is_bleed),
+                "pca_angle_from_vertical_deg": float(round(pca_ang_v, 2)),
             })
 
     count_after = len(candidates)
@@ -158,19 +198,27 @@ def compute_composite_score(cand: dict) -> float:
 
 def rank_and_select_candidates(
     candidates: list[dict],
-    min_abs_score: float = 47.0
+    min_abs_score: float = 47.0,
+    drop_bleed_trails: bool = True
 ) -> tuple[list[dict], float]:
     """
     Rank blob candidates using a pre-Radon composite shape/intensity score
-    and select those meeting an absolute score floor.
+    and select those meeting an absolute score floor, dropping vetoed bleed trails.
     """
     if not candidates:
         return [], 0.0
 
+    unvetoed = []
     for c in candidates:
+        if drop_bleed_trails and c.get("is_bleed_trail", False):
+            print(f"Bleed veto dropped candidate {c.get('label')}")
+            continue
+        unvetoed.append(c)
+
+    for c in unvetoed:
         c["composite_score"] = compute_composite_score(c)
 
-    sorted_candidates = sorted(candidates, key=lambda c: c["composite_score"], reverse=True)
+    sorted_candidates = sorted(unvetoed, key=lambda c: c["composite_score"], reverse=True)
 
     selected = [c for c in sorted_candidates if c["composite_score"] >= min_abs_score]
     return selected, min_abs_score
@@ -687,6 +735,7 @@ def grow_streak(
         mean_full_snr = float(np.mean(full_snrs)) if full_snrs else 0.0
 
         merged_cand = dict(rep["seed_cand"])
+        merged_cand["is_bleed_trail"] = any(g["seed_cand"].get("is_bleed_trail", False) for g in group)
         merged_cand["total_length"] = round(total_len, 1)
         merged_cand["gap_length"] = round(gap_len, 1)
         merged_cand["gap_mean_snr"] = round(mean_gap_snr, 2)
