@@ -17,13 +17,21 @@
    - `models/`: Saved model weights/artifacts (`.joblib`, `.pth`, etc.).
    - `outputs/`: Pipeline output catalogs, CSVs, and generated cutouts.
 
+## Working rules
+- Write code only. Never run scripts; the user runs them in PowerShell. Run git add and git commit only when the user tells you to, with the exact message given. End every task with the file names and the exact run command.
+- Read only the files the task names. No directory listings or searches unless told.
+- Keep replies under 40 words. No tables, no summaries of what the code does.
+- Never tick a checkbox in TASKLIST.md. The user ticks it after a visual check.
+- Every task that produces results must save a figure to outputs/review/ for the user to inspect, and print only compact numbers.
+- Use (frame_name, candidate_id) as the key. Do not change labels or thresholds unless the task says so.
+
 ## Status Report Protocol
-Whenever the user asks "where are we now", "where should we proceed", "status", or similar, write the report in plain, simple language. Explain what each item means and why it matters, and don't assume earlier context is remembered. Sections:
+Whenever the user asks "where are we now", "where should we proceed", "status", or similar, write the report in plain, simple language based only on reading `TASKLIST.md` and the output of `git log -n 5 --oneline` (no scripts, no sanity check). Explain what each item means and why it matters, and don't assume earlier context is remembered. Sections:
 
 1. Big picture (2-3 sentences): what the project is, and where we are in the plan.
 2. Progress: X of Y tasks done, and which phase we are in.
-3. Verified state: run `git status`, `git log -n 5 --oneline`, and `scripts/sanity_check_v3.py`. Report the selected candidate counts per frame and any errors. Do not modify anything.
-4. Task table: every task in `TASKLIST.md` as DONE / IN PROGRESS / NOT STARTED / BLOCKED, each with a one-line plain explanation of what it is. For DONE items, give evidence (commit hash or file).
+3. Verified state: report recent commits from `git log -n 5 --oneline` (do not run scripts or sanity checks).
+4. Task table: every task in `TASKLIST.md` as DONE / IN PROGRESS / NOT STARTED / BLOCKED, each with a one-line plain explanation of what it is. For DONE items, give evidence from the log.
 5. Drift check: uncommitted changes, scripts not tied to any task, tasks marked done that the repo does not support. Flag out-of-scope work.
 6. Open risks: anything unresolved, in plain words (for example, "we have too few labeled examples to train reliably").
 7. Next step: one recommended task. Explain what it is, why it comes next, the exact steps, and the files involved. Then name the two tasks after it.
@@ -37,4 +45,3 @@ For project background and known false-positive sources, read docs/STATUS_PROTOC
 ## Scope Rules
 - Do only the task requested. Do not start other TASKLIST.md items or create extra work on your own.
 - Never edit src/config.yaml, TASKLIST.md, or existing scripts unless the task requires it.
-- After finishing a task, update its checkbox in TASKLIST.md and commit with a clear message.
