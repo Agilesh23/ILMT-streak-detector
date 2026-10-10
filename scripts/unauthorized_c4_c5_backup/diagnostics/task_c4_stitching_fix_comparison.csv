@@ -1,7 +1,0 @@
-frame_name,shape_filtered_blobs,old_stitched_candidates,new_stitched_candidates,old_top1_length_px,new_top1_length_px,old_top1_fragments,new_top1_fragments,length_gain_px
-20221026-0057.fits,39,39,38,565.7,565.7,1,1,0.0
-20221101-0030.fits,28,28,28,21.5,21.5,1,1,0.0
-20230602-0022.fits,27,27,27,94.0,94.0,1,1,0.0
-20231115-0003.fits,28,28,28,31.7,31.7,1,1,0.0
-20240114-0028.fits,25,25,25,43.5,43.5,1,1,0.0
-20240405-0004.fits,43,40,35,627.2,4102.6,2,9,3475.4

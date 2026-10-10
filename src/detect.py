@@ -1,3 +1,4 @@
+# TASK D0a: fix the stitcher's mirrored angle test
 """
 Candidate Detection and Radon Feature Extraction Module for ILMT Streak Detector.
 
@@ -351,6 +352,7 @@ def stitch_collinear_fragments(
     max_cov: float = 2.0,
     max_pair_distance: float = 4500.0,
     snr_threshold: float = 3.0,
+    angle_mode: str = "signed",
 ) -> list[dict]:
     """
     Merge candidate fragments that belong to the same physical streak.
@@ -429,8 +431,13 @@ def stitch_collinear_fragments(
             conn_angle = float(np.degrees(np.arctan2(y2 - y1, x2 - x1)) % 180.0)
             
             # Pre-filter: BOTH candidates must align with connecting angle within tolerance
-            if (_angle_diff(conn_angle, _bbox_angle(ci)) > angle_tolerance_deg or
-                    _angle_diff(conn_angle, _bbox_angle(cj)) > angle_tolerance_deg):
+            if angle_mode == "legacy":
+                ref_angle = conn_angle
+            else:
+                ref_angle = min(conn_angle, 180.0 - conn_angle)
+
+            if (_angle_diff(ref_angle, _bbox_angle(ci)) > angle_tolerance_deg or
+                    _angle_diff(ref_angle, _bbox_angle(cj)) > angle_tolerance_deg):
                 continue
 
             if _check_pair_connected(

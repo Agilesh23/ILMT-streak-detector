@@ -1,3 +1,4 @@
+<!-- TASK G10: .gitignore, checks, push to main -->
 # ILMT Streak Detector V3 - Task List
 
 ## DONE
@@ -18,11 +19,35 @@
 - [x] C11 Add group_id column to label CSVs (commit 09085fd)
 - [x] Batch 3 labeling (commit 09085fd)
 - [x] Bleed veto in detect.py and config.yaml (commit 7663be8)
+- [x] D0a Angle fix: bbox angle cannot tell lean direction; known limit
+- [x] D0b-diag RANSAC centroid line fit captures 100% of labeled fragments on Set A, finds 8 suspect lines on negatives
+- [x] D0b-ref Reference strips confirm real streaks show continuous core, false lines show disjoint stars
+- [x] D0b-score Whole-line z-score separates real from false lines across full frame crossing
+- [x] D0b-score2 Peak-offset search (+-20px) improves z-score to 11.2-46.0 on real streaks vs 0.7-3.9 on false lines
+- [x] D0b Line grouping by straight-line fit of centroids, validated along the whole line (provisional thresholds ACCEPT_Z_PEAK=6, ACCEPT_MIN_SEGMENTS=4, tested on 86 frames, in-sample)
+- [x] D0b-fix1 Extent floor from member positions; raw-centroid diagnostic (49/49 labeled members on lines, 19 lines found, 11 accepted)
+- [x] D0c-fix1 Fix G1 file glob in build_candidates_v2.py (glob matched frame_review.csv, which has no candidate_id)
+- [x] D0c Build candidates_v2: 695 candidates (11 lines, 684 singles), 44 streak / 23 fp labeled
+- [x] G9a 1 duplicate pair found in candidates_v2 (270/10323)
+- [x] G9b Both new lines visually confirmed as streaks (wide soft bands, 35-40 px)
+- [x] G9c Clean reference images saved
+- [x] G9d Audit script could not detect mislabels (no lines in frames with streak singles); only 270 re-checked by eye and confirmed streak
+- [x] G9 Dedupe: moot, only pair was 270/10323; 10323 is an unrelated object (relabeled fp via label_overrides.csv)
+- [x] D1 Feature extraction for candidates_v2 -> data/d1/features_v2.csv
+- [x] D1a Refine single-candidate axis, fix saturation threshold, fix wide-band baseline
 
 ## NOW (data and labeling)
 > Note: 8 physical streaks in 8 of 9 frames (20221101-0030 has none), 15 streak rows.
-- [ ] D0 Fix candidate definition (raw blob vs post-stitch) so training and inference use the same objects; see the level report
-- [ ] G9 Dedupe candidates that cover the same streak (5768/3673, 888/12982) before scoring
+- [ ] G9e Reusable visualizer scripts/viz_check.py (IN PROGRESS)
+- [ ] G9g Interactive review tool scripts/label_check.py (IN PROGRESS)
+- [ ] G9h Fix n key in label_check.py (input() fails inside Qt key callback) (IN PROGRESS)
+- [ ] G9i Inventory existing visualizer/labeller; decide which to use for all review (IN PROGRESS)
+- [ ] G9j Review batch for label_tool.py from candidates_v2.csv (IN PROGRESS)
+- [ ] G9k Blind review batch: no p/score/label on images (IN PROGRESS)
+- [ ] D1b Add profile_snr_wing feature (IN PROGRESS)
+- [ ] D2 Random Forest, leave-one-frame-out (IN PROGRESS)
+- [ ] D1c Refinement fails on faint/wide streaks (6 of 33 confirmed singles have peak_snr < 0.35) (IN PROGRESS)
+- [ ] G10 Push to GitHub main (IN PROGRESS)
 
 ## FEATURES AND MODEL
 - [ ] D1 Feature extraction: straightness, width vs local star FWHM, profile uniformity, PCA angle from vertical, distance to frame edges, saturated-pixel fraction, group extent; no raw length. Key = (frame_name, candidate_id)
@@ -46,3 +71,6 @@
 ## NOTES
 - Suggested order: D0, G9, D1 with G3 and G3b, G4, D2, D3, then G1, G2, G6
 - Earlier stitching FP evaluation assumed 20230317-0008 and 20221026-0057 had no streaks; both do.
+- Single-candidate boxes: a streak's box diagonal is its axis; D1 must test both diagonals (D0a limit: lean direction unknown).
+- Wide soft-band streaks exist (20230615-0006_L1, 20240502-0026_L1): width is a feature, never a hard reject.
+- Do not train on min_edge_dist_px or x_over_3950 (length proxies), saturated_frac (all zero), group_extent_px or n_segments (lines only).
